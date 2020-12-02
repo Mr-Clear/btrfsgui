@@ -1,0 +1,8 @@
+.console {
+    font: 15px "Monospace";
+}
+
+.console text {
+    background-color: black;
+    color: green;
+}

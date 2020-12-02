@@ -7,6 +7,7 @@
     <property name="title" translatable="yes">Btrfs‍ GUI</property>
     <property name="default-width">800</property>
     <property name="default-height">600</property>
+    <property name="icon-name">applications-engineering</property>
     <child>
       <object class="GtkScrolledWindow">
         <property name="visible">True</property>
@@ -16,6 +17,10 @@
           <object class="GtkTextView" id="test_text">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
+            <property name="editable">False</property>
+            <style>
+              <class name="console"/>
+            </style>
           </object>
         </child>
       </object>
