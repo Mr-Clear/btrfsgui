@@ -1,13 +1,18 @@
+mod btrfs_tools;
+
 extern crate gtk;
 extern crate gio;
+
+use btrfs_tools::BtrfsDrive;
 
 use std::env;
 use gio::ApplicationExt;
 use gio::prelude::ApplicationExtManual;
 use gtk::prelude::*;
 use gtk::*;
-use std::path::Path;
-use std::process::Command;
+
+extern crate humansize;
+use humansize::{FileSize, file_size_opts as options};
 
 fn main() {
     env::set_var("LC_ALL", "en_US.UTF-8");
@@ -17,12 +22,12 @@ fn main() {
     ).expect("failed to initialize GTK application");
 
     application.connect_activate(|app| {
-        let glade_src = include_str!("main_window.glade");
-        let builder = Builder::from_string(glade_src);
+        let main_window_glade_src = include_str!("main_window.glade");
+        let drive_widget_glade_src = include_str!("drive_widget.glade");
+        let builder = Builder::from_string(main_window_glade_src);
         let window: Window = builder.get_object("main_window").expect("Couldn't get window");
         let screen = window.get_screen().unwrap();
         let drives_notebook: Notebook = builder.get_object("drives").expect("Couldn't get drives Notebook");
-
 
         let style: CssProvider = CssProvider::new();
         let css = include_str!("style.css");
@@ -31,12 +36,24 @@ fn main() {
 
         window.set_application(Some(app));
 
-        let drives = get_btrfs_drives();
+        let drives = BtrfsDrive::get_btrfs_drives();
         for drive in drives {
-            println!("{}", drive);
-            let l1 = Label::new(Some(drive.as_str()));
-            let l2 = Label::new(Some(drive.as_str()));
-            drives_notebook.append_page(&l1, Some(&l2));
+            println!("{}", drive.path);
+            let builder = Builder::from_string(drive_widget_glade_src);
+            let lbl = Label::new(Some(drive.path.as_str()));
+            let bin: Box = builder.get_object("drive_box").expect("Couldn't get drive_box");
+            drives_notebook.append_page(&bin, Some(&lbl));
+            let path: Entry = builder.get_object("path_txt").expect("Couldn't get path_txt");
+            path.set_text(drive.path.as_str());
+            let device: Entry = builder.get_object("device_txt").expect("Couldn't get device_txt");
+            device.set_text(drive.device.as_str());
+            let size: Entry = builder.get_object("size_txt").expect("Couldn't get size_txt");
+            size.set_text(drive.size.file_size(options::BINARY).unwrap().as_str());
+            let used: Entry = builder.get_object("used_txt").expect("Couldn't get used_txt");
+            used.set_text(drive.used.file_size(options::BINARY).unwrap().as_str());
+            let free: Entry = builder.get_object("free_txt").expect("Couldn't get free_txt");
+            free.set_text(drive.free.file_size(options::BINARY).unwrap().as_str());
+
         }
 
         window.show_all();
@@ -45,23 +62,3 @@ fn main() {
     application.run(&[]);
 }
 
-fn get_btrfs_drives() -> Vec<String> {
-    let output = Command::new("mount")
-        .output().expect("failed to execute 'mount'");
-    let text = std::str::from_utf8(&output.stdout).expect("Output of mount is no valid utf-8");
-    let lines = text.split("\n");
-    let mut drives: Vec<&str> = Vec::new();
-    for line in lines {
-        let fields: Vec<&str> = line.split(" ").collect();
-        if fields.len() > 4 && fields[4] == "btrfs" {
-            let drive = fields[2];
-            if Path::new(drive).is_dir() {
-                drives.push(drive);
-            }
-            else {
-                eprintln!("Mount is no valid directory: {}", drive);
-            }
-        }
-    }
-    return drives.iter().map(|s| s.to_string()).collect();
-}
