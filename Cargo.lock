@@ -51,6 +51,7 @@ name = "btrfsgui"
 version = "0.1.0"
 dependencies = [
  "gio",
+ "glib",
  "gtk",
  "humansize",
 ]
