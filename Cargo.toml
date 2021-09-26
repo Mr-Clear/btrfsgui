@@ -13,3 +13,4 @@ glib = "0.10"
 gio = { version = "0.9", features = ["v2_56"] }
 # gdk-pixbuf = { git = "https://github.com/gtk-rs/gtk-rs-core.git", package = "gdk-pixbuf" }
 humansize = "1.1.1"
+regex = "1.5.4"

@@ -73,6 +73,7 @@ pub struct DriveHandler {
     pub free: Entry,
     pub quota_status: Label,
     pub quota_switch: Switch,
+    pub subvolumes_tree_view: TreeView,
 }
 
 impl DriveHandler {
@@ -92,8 +93,14 @@ impl DriveHandler {
             used: builder.get_object("used_txt").expect("Couldn't get used_txt"),
             free: builder.get_object("free_txt").expect("Couldn't get free_txt"),
             quota_status: builder.get_object("quota_status_lbl").expect("Couldn't get quota_status_lbl"),
-            quota_switch: builder.get_object("quota_switch").expect("Couldn't get quota_switch")};
+            quota_switch: builder.get_object("quota_switch").expect("Couldn't get quota_switch"),
+            subvolumes_tree_view: builder.get_object("subvolumes_tree_view").expect("Couldn't get subvolumes_tree_view")};
         d.path_text.set_text(path);
+
+        append_column(&d.subvolumes_tree_view, 0, "ID");
+        append_column(&d.subvolumes_tree_view, 1, "Path");
+        append_column(&d.subvolumes_tree_view, 2, "Generation");
+
         d.update();
         return d;
     }
@@ -112,5 +119,20 @@ impl DriveHandler {
         };
         self.quota_status.set_text(quota_status_string);
         self.quota_switch.set_state(self.drive.quota_status.contains2(&QuotaStatus::On));
+        let model = ListStore::new(&[u32::static_type(), String::static_type(), u64::static_type()]);
+        for sub in &self.drive.subvolumes {
+            model.insert_with_values(None, &[0, 1, 2], &[&sub.id, &sub.path, &sub.generation]);
+        }
+        self.subvolumes_tree_view.set_model(Some(&model));
     }
+}
+
+fn append_column(tree: &TreeView, id: i32, title: &str) {
+    let column = TreeViewColumn::new();
+    let cell = CellRendererText::new();
+    column.set_title(title);
+    column.pack_start(&cell, true);
+    // Association of the view's column with the model's `id` column.
+    column.add_attribute(&cell, "text", id);
+    tree.append_column(&column);
 }

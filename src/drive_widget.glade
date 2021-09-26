@@ -5,12 +5,16 @@
   <object class="GtkBox" id="drive_box">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <property name="margin-start">4</property>
+    <property name="margin-end">4</property>
     <property name="orientation">vertical</property>
     <child>
       <!-- n-columns=3 n-rows=5 -->
       <object class="GtkGrid" id="stats_grid">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="row-spacing">4</property>
+        <property name="column-spacing">4</property>
         <child>
           <object class="GtkLabel" id="path_lbl">
             <property name="visible">True</property>
@@ -157,11 +161,28 @@
       <packing>
         <property name="expand">False</property>
         <property name="fill">True</property>
+        <property name="padding">4</property>
         <property name="position">0</property>
       </packing>
     </child>
     <child>
-      <placeholder/>
+      <object class="GtkScrolledWindow">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="shadow-type">in</property>
+        <child>
+          <object class="GtkTreeView" id="subvolumes_tree_view">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="expand">True</property>
+        <property name="fill">True</property>
+        <property name="padding">4</property>
+        <property name="position">1</property>
+      </packing>
     </child>
   </object>
 </interface>

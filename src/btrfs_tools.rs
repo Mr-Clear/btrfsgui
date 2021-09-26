@@ -1,5 +1,6 @@
 use std::process::Command;
 use std::path::Path;
+use regex::Regex;
 
 #[derive(PartialEq)]
 pub enum QuotaStatus {
@@ -16,13 +17,22 @@ pub struct BtrfsDrive {
     pub free: u64,
     pub percentage: u8,
     pub quota_status: Result<QuotaStatus, String>,
+    pub subvolumes: Vec<BtrfsSubvolume>,
+}
+
+pub struct BtrfsSubvolume {
+    pub id: u32,
+    pub generation: u64,
+    pub parent: u32,
+    pub uuid: String,
+    pub path: String,
 }
 
 impl BtrfsDrive {
     pub fn new(path: &str) -> BtrfsDrive {
 
         let mut d = BtrfsDrive { path: path.to_string(), device: "".to_string(), size: 0, used: 0,
-            free: 0, percentage: 0 , quota_status: Err("Not initialized".to_string())};
+            free: 0, percentage: 0 , quota_status: Err("Not initialized".to_string()), subvolumes: Vec::new()};
         d.update();
         return d;
     }
@@ -35,6 +45,7 @@ impl BtrfsDrive {
         self.free = df.3;
         self.percentage = df.4;
         self.quota_status = self.test_quota();
+        self.subvolumes = self.list_subvolumes().unwrap();
     }
 
     //noinspection RsSelfConvention
@@ -92,5 +103,39 @@ impl BtrfsDrive {
 
         println!("{}", err);
         return Err(err);
+    }
+
+    fn list_subvolumes(&self) -> Result<Vec<BtrfsSubvolume>, String> {
+        let output = Command::new("sudo")
+            .arg("btrfs")
+            .arg("sub")
+            .arg("list")
+            .arg("-pug")
+            .arg(self.path.as_str())
+            .output().expect("sudo btrfs sub list -pug'");
+
+        if !output.status.success() {
+            let err = String::from_utf8(output.stderr).expect("Failed to decode error output.");
+            return Err(err);
+        }
+        let out = String::from_utf8(output.stdout).expect("Failed to decode standard output.");
+        let lines = out.split("\n");
+        let mut subs: Vec<BtrfsSubvolume> = Vec::new();
+        let re = Regex::new(r"ID (\d+) gen (\d+) parent (\d+) top level (\d+) uuid ([0-9a-f\-]+) path (.+)")
+            .expect("Failed to parse regex.");
+        for line in lines {
+            if line.is_empty() {
+                continue;
+            }
+            let cap = re.captures(line).expect(format!("Failed to parse line: '{}'", line).as_str());
+            subs.push( BtrfsSubvolume {
+                id: cap[1].parse::<u32>().expect("Failed to parse subvolume id."),
+                generation: cap[2].parse::<u64>().expect("Failed to parse subvolume generation."),
+                parent: cap[3].parse::<u32>().expect("Failed to parse subvolume parent."),
+                uuid: cap[5].to_string(),
+                path: cap[6].to_string()});
+        }
+
+        return Ok(subs);
     }
 }
